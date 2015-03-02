@@ -3,3 +3,6 @@
 *~
 \#*\#
 build/
+MANIFEST
+dist
+rpm-build

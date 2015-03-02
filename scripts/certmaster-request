@@ -27,6 +27,10 @@ if __name__ == "__main__":
         metavar="NAME", 
         help='hostname to use as the CN for the certificate')
     
+    parser.add_option('--ca', action="store", dest="ca", default='',
+        metavar="CA", 
+        help='certificate authority used to sign the certificate')
+    
     (opts, args) = parser.parse_args()
 
-    requester.request_cert(hostname=opts.hostname)
+    requester.request_cert(hostname=opts.hostname, ca=opts.ca)

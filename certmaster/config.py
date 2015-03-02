@@ -60,7 +60,7 @@ class Option(object):
         @param obj: The configuration instance to modify.
         @param objtype: The type of the config instance (not used).
         @return: The parsed option value or the default value if the value
-            wasn't set in the configuration file.
+            was not set in the configuration file.
         '''
         if obj is None:
             return self
@@ -475,4 +475,26 @@ def read_config(config_file, BaseConfigDerived):
             print >> sys.stderr, "Error reading config file: %s" % e
             sys.exit(1)
     opts.populate(confparser, 'main')
+
+    ## build up the cas structure
+    opts.ca = {}
+    opts.ca[''] = {}
+
+    ## Add the default items when just using a single ca
+    main_items = confparser.items('main')
+    for (key,value) in main_items:
+        if key in ['autosign','cadir','cert_dir','certroot','csrroot']:
+            opts.ca[''][key] = value
+
+    ## Add additonal ca sections
+    sections = confparser.sections()
+    for a_section in sections:
+        if a_section.startswith('ca:'):
+            ca_name = a_section[3:]
+            items = confparser.items(a_section)
+            opts.ca[ca_name] = {}
+            for (key,value) in items:
+                opts.ca[ca_name][key] = value
+                print 'opts.ca: %s %s %s' % (ca_name, key, value)
+    
     return opts

@@ -79,8 +79,9 @@ def local_certs():
     results = []
     for f in files:
         hostname = os.path.basename(f).replace('.' + cm.cfg.cert_extension, '')
+        dirname = os.path.dirname(f)
         digest = checksum(f)
-        results.append([hostname, digest])
+        results.append([hostname, digest, dirname])
     return results
 
 def checksum(f):
@@ -119,7 +120,7 @@ def copy_updated_certs(local, remote):
         for cert in local:
             if cert not in peers:
                 cert_name = '%s.%s' % (cert[0], cm.cfg.cert_extension)
-                full_path = os.path.join(cm.cfg.certroot, cert_name)
+                full_path = os.path.join(cert[2], cert_name)
                 fd = open(full_path)
                 certblob = fd.read()
                 fd.close()

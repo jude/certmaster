@@ -122,13 +122,15 @@ def get_hostname(talk_to_certmaster=True):
 # FIXME: move to requestor module and also create a verbose mode
 # prints to the screen for usage by /usr/bin/certmaster-request
 
-def create_minion_keys(hostname=None):
+def create_minion_keys(hostname=None, ca=''):
     log = logger.Logger().logger
 
     # FIXME: paths should not be hard coded here, move to settings universally
     config_file = '/etc/certmaster/minion.conf'
     config = read_config(config_file, MinionConfig)
-    cert_dir = config.cert_dir
+
+    cert_dir = config.ca[ca]['cert_dir']
+        
     master_uri = 'http://%s:%s/' % (config.certmaster, config.certmaster_port)
 
     hn = hostname
@@ -145,7 +147,6 @@ def create_minion_keys(hostname=None):
     csr_file = '%s/%s.csr' % (cert_dir, hn)
     cert_file = '%s/%s.cert' % (cert_dir, hn)
     ca_cert_file = '%s/ca.cert' % cert_dir
-
 
     if os.path.exists(cert_file) and os.path.exists(ca_cert_file):
         # print "DEBUG: err, no cert_file"
@@ -171,7 +172,7 @@ def create_minion_keys(hostname=None):
         try:
             # print "DEBUG: submitting CSR to certmaster: %s" % master_uri
             log.debug("submitting CSR: %s  to certmaster %s" % (csr_file, master_uri))
-            result, cert_string, ca_cert_string = submit_csr_to_master(csr_file, master_uri)
+            result, cert_string, ca_cert_string = submit_csr_to_master(csr_file, master_uri, ca)
         except socket.error, e:
             log.warning("Could not locate certmaster at %s" % master_uri)
 
@@ -231,7 +232,7 @@ def run_triggers(ref, globber):
             raise codes.CMException, "certmaster trigger failed: %(file)s returns %(code)d" % { "file" : file, "code" : rc }
 
 
-def submit_csr_to_master(csr_file, master_uri):
+def submit_csr_to_master(csr_file, master_uri, ca=''):
     """"
     gets us our cert back from the certmaster.wait_for_cert() method
     takes csr_file as path location and master_uri
@@ -243,4 +244,4 @@ def submit_csr_to_master(csr_file, master_uri):
     s = xmlrpclib.ServerProxy(master_uri)
 
     # print "DEBUG: waiting for cert"
-    return s.wait_for_cert(csr)
+    return s.wait_for_cert(csr,ca)

@@ -1,6 +1,7 @@
 VERSION		= 0.28
 RELEASE		= 1
 PYTHON		= /usr/bin/python
+DIST            = pwan
 
 MESSAGESPOT=po/messages.pot
 
@@ -92,7 +93,9 @@ async: install
 rpms: build manpage sdist
 	mkdir -p rpm-build
 	cp dist/*.gz rpm-build/
+	echo ${RELEASE}
 	rpmbuild --define "_topdir %(pwd)/rpm-build" \
+        --define "dist ${DIST}" \
 	--define "_builddir %{_topdir}" \
 	--define "_rpmdir %{_topdir}" \
 	--define "_srcrpmdir %{_topdir}" \
