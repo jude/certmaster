@@ -165,7 +165,7 @@ class CertMaster(object):
         if os.path.exists(certfile):
             slavecert = certs.retrieve_cert_from_file(certfile)
             cert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, slavecert)
-            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert)
+            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert[ca])
             if with_triggers:
                 self._run_triggers(requesting_host,'/var/lib/certmaster/triggers/request/post/*')
             return True, cert_buf, cacert_buf
@@ -175,10 +175,10 @@ class CertMaster(object):
         # else write out the csr
 
         if self.cfg.ca[ca]['autosign']:
-            cert_fn = self.sign_this_csr(csrreq)
+            cert_fn = self.sign_this_csr(csrreq,ca=ca)
             cert = certs.retrieve_cert_from_file(cert_fn)
             cert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert)
+            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert[ca])
             self.logger.info("cert for %s for ca %s was autosigned" % (requesting_host,ca))
             if with_triggers:
                 self._run_triggers(None,'/var/lib/certmaster/triggers/request/post/*')
@@ -227,7 +227,7 @@ class CertMaster(object):
         if with_triggers:
             self._run_triggers(hn,'/var/lib/certmaster/triggers/remove/post/*')
 
-    def sign_this_csr(self, csr, with_triggers=True,ca=''):
+    def sign_this_csr(self, csr, with_triggers=True, ca=''):
         """returns the path to the signed cert file"""
         csr_unlink_file = None
 
@@ -263,7 +263,7 @@ class CertMaster(object):
 
         certfile = '%s/%s.cert' % (self.cfg.ca[ca]['certroot'], requesting_host)
         self.logger.info("Signing for csr %s requested" % certfile)
-        thiscert = certs.create_slave_certificate(csrreq, self.cakey, self.cacert, self.cfg.ca[ca]['cadir'])
+        thiscert = certs.create_slave_certificate(csrreq, self.cakey[ca], self.cacert[ca], self.cfg.ca[ca]['cadir'])
 
         destfo = open(certfile, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, thiscert))

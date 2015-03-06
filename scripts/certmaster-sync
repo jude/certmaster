@@ -24,9 +24,14 @@ import xmlrpclib
 from glob import glob
 from time import sleep
 from certmaster import certmaster as certmaster
-from func.overlord.client import Client
-from func.CommonErrors import Func_Client_Exception
-import func.jobthing as jobthing
+
+func_import_failure = None
+try:
+    from func.overlord.client import Client
+    from func.CommonErrors import Func_Client_Exception
+    import func.jobthing as jobthing
+except ImportError, e:
+    func_import_failure = str(e)
 
 def syncable(cert_list):
     """
@@ -136,6 +141,11 @@ def main():
 
     if not cm.cfg.sync_certs and not forced:
         sys.exit(0)
+
+    # Don't complain about func not being available until you actually want it
+    if func_import_failure != None:
+        print >> sys.stderr,  "errors importing func: %s" % func_import_failure
+        sys.exit(1)
 
     certs = glob(os.path.join(cm.cfg.certroot,
                               '*.%s' % cm.cfg.cert_extension))

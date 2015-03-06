@@ -64,7 +64,7 @@ def main(args):
 
         
     if opts.list:
-        hns = cm.get_csrs_waiting(opts.ca)
+        hns = cm.get_csrs_waiting(ca=opts.ca)
         if hns:
             for hn in sorted(hns):
                 print hn
@@ -86,7 +86,7 @@ def main(args):
                 return 1
             
             for fn in csrs:
-                certfile = cm.sign_this_csr(opts.ca,fn)
+                certfile = cm.sign_this_csr(fn, ca=opts.ca)
                 print '%s signed - cert located at %s' % (fn, certfile)
         return 0
     
@@ -96,7 +96,7 @@ def main(args):
             return 1
         
         for hn in args:
-            cm.remove_this_cert(opts.ca,hn)
+            cm.remove_this_cert(hn, ca=opts.ca)
         
         return 0
 
@@ -105,7 +105,7 @@ def main(args):
         if args:
             hostglobs = args
 
-        signed_certs = cm.get_signed_certs(opts.ca, args)
+        signed_certs = cm.get_signed_certs(args, ca=opts.ca)
 
         for i in sorted(signed_certs):
             print i
@@ -117,7 +117,7 @@ def main(args):
         if args:
             hostglobs = args
             
-        cert_hashes = cm.get_cert_hashes(opts.ca, hostglobs)
+        cert_hashes = cm.get_cert_hashes(hostglobs, ca=opts.ca)
 
         for i in sorted(cert_hashes):
             print i
