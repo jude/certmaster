@@ -495,6 +495,5 @@ def read_config(config_file, BaseConfigDerived):
             opts.ca[ca_name] = {}
             for (key,value) in items:
                 opts.ca[ca_name][key] = value
-                print 'opts.ca: %s %s %s' % (ca_name, key, value)
     
     return opts
