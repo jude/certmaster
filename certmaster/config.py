@@ -478,14 +478,8 @@ def read_config(config_file, BaseConfigDerived):
 
     ## build up the cas structure
     opts.ca = {}
-#    opts.ca[''] = {}
 
     ## Add the default items when just using a single ca
-#    main_items = confparser.items('main')
-#    for (key,value) in main_items:
-#        if key in ['autosign','cadir','cert_dir','certroot','csrroot']:
-#            print "main ca: key: %s, value: %s" % (key,value)
-#            opts.ca[''][key] = value
     opts.ca[''] = BaseConfigDerived()
     opts.ca[''].populate(confparser,'main')
 
@@ -494,10 +488,6 @@ def read_config(config_file, BaseConfigDerived):
     for a_section in sections:
         if a_section.startswith('ca:'):
             ca_name = a_section[3:]
-#            items = confparser.items(a_section)
-#            opts.ca[ca_name] = {}
-#            for (key,value) in items:
-#                opts.ca[ca_name][key] = value
             opts.ca[ca_name] = BaseConfigDerived()
             opts.ca[ca_name].populate(confparser,a_section)
             opts.ca[ca_name].cakey = None

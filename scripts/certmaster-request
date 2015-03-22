@@ -17,6 +17,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 import distutils.sysconfig
 import optparse
+import sys
 
 from certmaster import requester
 
@@ -33,4 +34,7 @@ if __name__ == "__main__":
     
     (opts, args) = parser.parse_args()
 
-    requester.request_cert(hostname=opts.hostname, ca_name=opts.ca)
+    try:
+        requester.request_cert(hostname=opts.hostname, ca_name=opts.ca)
+    except Exception as e:
+        print >> sys.stderr, "error: %s" % str(e)

@@ -88,6 +88,17 @@ EOF
 
 }
 
+test_CertmasterRequest_UnknownCA()
+{
+    actual=$(certmaster-request --hostname unknown.pwan.co --ca unknown 2>&1)
+    expected=$(cat <<EOF
+error: Unknown cert authority: unknown
+EOF
+)
+
+   assertEquals "certmaster-request --ca unknown" "$actual" "$expected"
+}
+
 test_CertmasterCAHelp()
 {
     actual=`certmaster-ca --help`
@@ -137,6 +148,18 @@ test_CertmasterCAVersion()
 
     [[ "$actual" == *"release:"* ]]    
     assertTrue "version includes a release" $?
+}
+
+test_CertmasterCA_UnknownCA()
+{
+    actual=$(certmaster-ca --list --ca unknown 2>&1)
+
+    expected=$(cat <<EOF
+Unknown ca unknown: check /etc/certmaster.cfg
+EOF
+)
+
+    assertEquals "certmaster-ca --ca unknown" "$actual" "$expected"
 }
 
 test_TestCA_Autosigning()
