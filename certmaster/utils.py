@@ -28,7 +28,6 @@ import sub_process
 
 # FIXME: module needs better pydoc
 
-
 # FIXME: can remove this constant?
 REMOTE_ERROR = "REMOTE_ERROR"
 
@@ -37,9 +36,6 @@ if (hasattr(os, "devnull")):
     REDIRECT_TO = os.devnull
 else:
     REDIRECT_TO = "/dev/null"
-
-
-
 
 def trace_me():
     x = traceback.extract_stack()
@@ -122,14 +118,19 @@ def get_hostname(talk_to_certmaster=True):
 # FIXME: move to requestor module and also create a verbose mode
 # prints to the screen for usage by /usr/bin/certmaster-request
 
-def create_minion_keys(hostname=None, ca=''):
+def create_minion_keys(hostname=None, ca_name=''):
     log = logger.Logger().logger
 
     # FIXME: paths should not be hard coded here, move to settings universally
     config_file = '/etc/certmaster/minion.conf'
     config = read_config(config_file, MinionConfig)
 
-    cert_dir = config.ca[ca]['cert_dir']
+    try:
+        certauth=config.ca[ca_name]
+    except:
+        raise codes.CMException("Unknown cert authority: %s" % ca_name)
+
+    cert_dir = certauth.cert_dir
         
     master_uri = 'http://%s:%s/' % (config.certmaster, config.certmaster_port)
 
@@ -172,7 +173,7 @@ def create_minion_keys(hostname=None, ca=''):
         try:
             # print "DEBUG: submitting CSR to certmaster: %s" % master_uri
             log.debug("submitting CSR: %s  to certmaster %s" % (csr_file, master_uri))
-            result, cert_string, ca_cert_string = submit_csr_to_master(csr_file, master_uri, ca)
+            result, cert_string, ca_cert_string = submit_csr_to_master(csr_file, master_uri, ca_name)
         except socket.error, e:
             log.warning("Could not locate certmaster at %s" % master_uri)
 
@@ -232,7 +233,7 @@ def run_triggers(ref, globber):
             raise codes.CMException, "certmaster trigger failed: %(file)s returns %(code)d" % { "file" : file, "code" : rc }
 
 
-def submit_csr_to_master(csr_file, master_uri, ca=''):
+def submit_csr_to_master(csr_file, master_uri, ca_name=''):
     """"
     gets us our cert back from the certmaster.wait_for_cert() method
     takes csr_file as path location and master_uri
@@ -244,4 +245,4 @@ def submit_csr_to_master(csr_file, master_uri, ca=''):
     s = xmlrpclib.ServerProxy(master_uri)
 
     # print "DEBUG: waiting for cert"
-    return s.wait_for_cert(csr,ca)
+    return s.wait_for_cert(csr,ca_name)

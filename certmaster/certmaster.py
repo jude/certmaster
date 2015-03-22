@@ -64,7 +64,7 @@ class CertMaster(object):
         self.cacert = {}
 
         for (s_caname,a_ca) in self.cfg.ca.iteritems():
-            s_cadir = a_ca['cadir']
+            s_cadir = a_ca.cadir
 
             if s_caname == "":
                 mycn = '%s-CA-KEY' % usename
@@ -88,10 +88,10 @@ class CertMaster(object):
                 sys.exit(1)
 
             # open up the cakey and cacert so we have them available
-            self.cakey[s_caname] = certs.retrieve_key_from_file(s_ca_key_file)
-            self.cacert[s_caname] = certs.retrieve_cert_from_file(s_ca_cert_file)
+            a_ca.cakey = certs.retrieve_key_from_file(s_ca_key_file)
+            a_ca.cacert = certs.retrieve_cert_from_file(s_ca_cert_file)
 
-            for dirpath in [a_ca['cadir'], a_ca['certroot'], a_ca['csrroot'], a_ca['csrroot']]:
+            for dirpath in [a_ca.cadir, a_ca.certroot, a_ca.csrroot, a_ca.csrroot]:
                 if not os.path.exists(dirpath):
                     os.makedirs(dirpath)
 
@@ -117,12 +117,17 @@ class CertMaster(object):
         commonname = commonname.replace('\\', '')
         return commonname
 
-    def wait_for_cert(self, csrbuf, ca='', with_triggers=True):
+    def wait_for_cert(self, csrbuf, ca_name, with_triggers=True):
         """
            takes csr as a string
            returns True, caller_cert, ca_cert
            returns False, '', ''
         """
+
+        try:
+            certauth = self.cfg.ca[ca_name]
+        except:
+            raise codes.CMException("Unknown cert authority: %s" % ca_name)
 
         try:
             csrreq = crypto.load_certificate_request(crypto.FILETYPE_PEM, csrbuf)
@@ -138,8 +143,8 @@ class CertMaster(object):
         self.logger.info("%s requested signing of cert %s" % (requesting_host,csrreq.get_subject().CN))
         # get rid of dodgy characters in the filename we're about to make
 
-        certfile = '%s/%s.cert' % (self.cfg.ca[ca]['certroot'], requesting_host)
-        csrfile = '%s/%s.csr' % (self.cfg.ca[ca]['csrroot'], requesting_host)
+        certfile = '%s/%s.cert' % (certauth.certroot, requesting_host)
+        csrfile = '%s/%s.csr' % (certauth.csrroot, requesting_host)
 
         # check for old csr on disk
         # if we have it - compare the two - if they are not the same - raise a fault
@@ -165,7 +170,7 @@ class CertMaster(object):
         if os.path.exists(certfile):
             slavecert = certs.retrieve_cert_from_file(certfile)
             cert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, slavecert)
-            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert[ca])
+            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, certauth.cacert)
             if with_triggers:
                 self._run_triggers(requesting_host,'/var/lib/certmaster/triggers/request/post/*')
             return True, cert_buf, cacert_buf
@@ -174,12 +179,12 @@ class CertMaster(object):
         # if we're autosign then sign it, write out the cert and return True, etc, etc
         # else write out the csr
 
-        if self.cfg.ca[ca]['autosign']:
-            cert_fn = self.sign_this_csr(csrreq,ca=ca)
+        if certauth.autosign:
+            cert_fn = self.sign_this_csr(csrreq,certauth)
             cert = certs.retrieve_cert_from_file(cert_fn)
             cert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, self.cacert[ca])
-            self.logger.info("cert for %s for ca %s was autosigned" % (requesting_host,ca))
+            cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, certauth.cacert)
+            self.logger.info("cert for %s for ca %s was autosigned" % (requesting_host,ca_name))
             if with_triggers:
                 self._run_triggers(None,'/var/lib/certmaster/triggers/request/post/*')
             return True, cert_buf, cacert_buf
@@ -190,16 +195,16 @@ class CertMaster(object):
             destfo.write(crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrreq))
             destfo.close()
             del destfo
-            self.logger.info("cert for %s for CA %s created and ready to be signed" % (requesting_host, ca))
+            self.logger.info("cert for %s for CA %s created and ready to be signed" % (requesting_host, ca_name))
             if with_triggers:
                 self._run_triggers(None,'/var/lib/certmaster/triggers/request/post/*')
             return False, '', ''
 
         return False, '', ''
 
-    def get_csrs_waiting(self, ca=''):
+    def get_csrs_waiting(self, certauth):
         hosts = []
-        csrglob = '%s/*.csr' % self.cfg.ca[ca]['csrroot']
+        csrglob = '%s/*.csr' % certauth.csrroot
         csr_list = glob.glob(csrglob)
         for f in csr_list:
             hn = os.path.basename(f)
@@ -207,12 +212,12 @@ class CertMaster(object):
             hosts.append(hn)
         return hosts
 
-    def remove_this_cert(self, hn, with_triggers=True, ca=''):
+    def remove_this_cert(self, hn, certauth, with_triggers=True):
         """ removes cert for hostname using unlink """
         cm = self
-        csrglob = '%s/%s.csr' % (cm.cfg.ca[ca]['csrroot'], hn)
+        csrglob = '%s/%s.csr' % (certauth.csrroot, hn)
         csrs = glob.glob(csrglob)
-        certglob = '%s/%s.cert' % (cm.cfg.ca[ca]['certroot'], hn)
+        certglob = '%s/%s.cert' % (certauth.certroot, hn)
         certs = glob.glob(certglob)
         if not csrs and not certs:
             # FIXME: should be an exception?
@@ -227,7 +232,7 @@ class CertMaster(object):
         if with_triggers:
             self._run_triggers(hn,'/var/lib/certmaster/triggers/remove/post/*')
 
-    def sign_this_csr(self, csr, with_triggers=True, ca=''):
+    def sign_this_csr(self, csr, certauth,with_triggers=True):
         """returns the path to the signed cert file"""
         csr_unlink_file = None
 
@@ -237,10 +242,10 @@ class CertMaster(object):
                 csr_buf = csrfo.read()
                 csr_unlink_file = csr
 
-            elif os.path.exists('%s/%s' % (self.cfg.ca[ca]['csrroot'], csr)): # we have a partial path?
-                csrfo = open('%s/%s' % (self.cfg.ca[ca]['csrroot'], csr))
+            elif os.path.exists('%s/%s' % (certauth.csrroot, csr)): # we have a partial path?
+                csrfo = open('%s/%s' % (certauth.csrroot, csr))
                 csr_buf = csrfo.read()
-                csr_unlink_file = '%s/%s' % (self.cfg.ca[ca]['csrroot'], csr)
+                csr_unlink_file = '%s/%s' % (certauth.csrroot, csr)
 
             # we have a string of some kind
             else:
@@ -261,9 +266,9 @@ class CertMaster(object):
             self._run_triggers(requesting_host,'/var/lib/certmaster/triggers/sign/pre/*')
 
 
-        certfile = '%s/%s.cert' % (self.cfg.ca[ca]['certroot'], requesting_host)
+        certfile = '%s/%s.cert' % (certauth.certroot, requesting_host)
         self.logger.info("Signing for csr %s requested" % certfile)
-        thiscert = certs.create_slave_certificate(csrreq, self.cakey[ca], self.cacert[ca], self.cfg.ca[ca]['cadir'])
+        thiscert = certs.create_slave_certificate(csrreq, certauth.cakey, certauth.cacert, certauth.cadir)
 
         destfo = open(certfile, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, thiscert))
@@ -282,8 +287,8 @@ class CertMaster(object):
         return certfile
 
     # return a list of already signed certs
-    def get_signed_certs(self, hostglobs=None, ca=''):
-        certglob = "%s/*.cert" % (self.cfg.ca[ca]['certroot'])
+    def get_signed_certs(self, certauth,hostglobs=None):
+        certglob = "%s/*.cert" % (certauth.certroot)
 
         certs = []
         globs = "*"
@@ -291,7 +296,7 @@ class CertMaster(object):
             globs = hostglobs
 
         for hostglob in globs:
-            certglob = "%s/%s.cert" % (self.cfg.ca[ca]['certroot'], hostglob)
+            certglob = "%s/%s.cert" % (certauth.certroot, hostglob)
             certs = certs + glob.glob(certglob)
 
         signed_certs = []
@@ -309,8 +314,8 @@ class CertMaster(object):
         return glob.glob(myglob)
 
     # return a list of the cert hash string we use to identify systems
-    def get_cert_hashes(self, hostglobs=None,ca=''):
-        certglob = "%s/*.cert" % (self.cfg.ca[ca]['certroot'])
+    def get_cert_hashes(self, certauth, hostglobs=None):
+        certglob = "%s/*.cert" % (certauth.certroot)
 
         certfiles = []
         globs = "*"
@@ -318,7 +323,7 @@ class CertMaster(object):
             globs = hostglobs
 
         for hostglob in globs:
-            certglob = "%s/%s.cert" % (self.cfg.ca[ca]['certroot'], hostglob)
+            certglob = "%s/%s.cert" % (certauth.certroot, hostglob)
             certfiles = certfiles + glob.glob(certglob)
 
         cert_hashes = []

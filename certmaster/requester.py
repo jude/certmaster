@@ -15,8 +15,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 import utils
 
-def request_cert(hostname=None, ca=''):
+def request_cert(hostname=None, ca_name=''):
     # this should be enough, but do we want to allow parameters
     # for overriding the server and port from the config file?
     # maybe not. -- mpd
-    utils.create_minion_keys(hostname,ca)
+    utils.create_minion_keys(hostname,ca_name)

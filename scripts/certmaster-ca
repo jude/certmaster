@@ -15,15 +15,12 @@ import certmaster
 import certmaster.certs
 import certmaster.certmaster
 
-
-
-
 def errorprint(stuff):
     print >> sys.stderr, stuff
 
 class CertmasterCAOptionParser(optparse.OptionParser):
     def get_version(self):
-        return file("/etc/func/version").read().strip()
+        return file("/etc/certmaster/version").read().strip()
 
 def parseargs(args):
     usage = 'certmaster-ca <option> [args]'
@@ -62,9 +59,15 @@ def main(args):
     
     (opts, args) = parseargs(args)
 
+    ## Check that the ca option matches a configured ca
+    try:
+        certauth = cm.cfg.ca[opts.ca]
+    except:
+        errorprint("Unknown ca %s: check /etc/certmaster.cfg" % opts.ca)
+        return 1
         
     if opts.list:
-        hns = cm.get_csrs_waiting(ca=opts.ca)
+        hns = cm.get_csrs_waiting(certauth)
         if hns:
             for hn in sorted(hns):
                 print hn
@@ -79,14 +82,14 @@ def main(args):
             return 1
             
         for hn in args:
-            csrglob = '%s/%s.csr' % (cm.cfg.cas[opts.ca]['csrroot'], hn)
+            csrglob = '%s/%s.csr' % (certauth.csrroot, hn)
             csrs = glob.glob(csrglob)
             if not csrs:
                 errorprint('No match for %s to sign' % hn)
                 return 1
             
             for fn in csrs:
-                certfile = cm.sign_this_csr(fn, ca=opts.ca)
+                certfile = cm.sign_this_csr(fn, certauth)
                 print '%s signed - cert located at %s' % (fn, certfile)
         return 0
     
@@ -96,7 +99,7 @@ def main(args):
             return 1
         
         for hn in args:
-            cm.remove_this_cert(hn, ca=opts.ca)
+            cm.remove_this_cert(hn, certauth)
         
         return 0
 
@@ -105,7 +108,7 @@ def main(args):
         if args:
             hostglobs = args
 
-        signed_certs = cm.get_signed_certs(args, ca=opts.ca)
+        signed_certs = cm.get_signed_certs(certauth, args)
 
         for i in sorted(signed_certs):
             print i
@@ -117,7 +120,7 @@ def main(args):
         if args:
             hostglobs = args
             
-        cert_hashes = cm.get_cert_hashes(hostglobs, ca=opts.ca)
+        cert_hashes = cm.get_cert_hashes(certauth, hostglobs)
 
         for i in sorted(cert_hashes):
             print i

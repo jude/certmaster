@@ -33,4 +33,4 @@ if __name__ == "__main__":
     
     (opts, args) = parser.parse_args()
 
-    requester.request_cert(hostname=opts.hostname, ca=opts.ca)
+    requester.request_cert(hostname=opts.hostname, ca_name=opts.ca)
