@@ -13,7 +13,7 @@ cert_dir = /etc/pki/certmaster
 certroot = /var/lib/certmaster/certmaster/certs
 csrroot = /var/lib/certmaster/certmaster/csrs
 
-# use these directories if '--ca=yourapp' provided in the certmaster-ca commands
+# use these directories if '--ca=test' is provided in the certmaster-ca commands
 [ca:test]
 autosign = yes
 cadir = /etc/pki/certmaster/test-ca

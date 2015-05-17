@@ -54,7 +54,7 @@ The tests overwrite the /etc/certmaster/certmaster.conf and /etc/certmaster/mini
 so only run these tests on a test server / VM / docker image, not on your live production certmaster instance.
 
 ### Misc Changes
-+ 'certmaster-ca --version' reads /etc/certmaste/version instead of func's version file
++ 'certmaster-ca --version' reads /etc/certmaster/version instead of func's version file
 + certmaster-sync doesn't error out if func if not present
 + switched README to README.md
 
