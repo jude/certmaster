@@ -178,6 +178,9 @@ test_TestCA_Autosigning()
     subject=`openssl x509 -in /etc/pki/certmaster-test/testcert.pwan.co.cert -subject -noout`
     [[ $subject == *"CN=testcert.pwan.co"* ]]
 
+    openssl x509 -in /etc/pki/certmaster-test/testcert.pwan.co.cert  -text | grep Signature | grep sha256
+    assertTrue "testcert.pwan.co.cert has a sha256 hash" $?
+
     openssl rsa -in /etc/pki/certmaster-test/testcert.pwan.co.pem -check > /dev/null 2>&1
     assertTrue "test.pwan.co.pem OK" $?
     openssl req -text -noout -verify -in /etc/pki/certmaster-test/testcert.pwan.co.csr > /dev/null 2>&1
@@ -196,6 +199,31 @@ test_TestCA_Autosigning()
     output=`certmaster-ca --list-cert-hash --ca test`
     [[ $output == *"testcert.pwan.co"* ]]
     assertTrue "--list-cert-hash includes testcert" $?
+
+}
+
+test_MD5CA_Attempy() {
+
+    # TODO:  Verify attempts to create MD5 certs fail
+    assertTrue "TODO" false
+}
+
+test_Sha1CA_Autosigning() {
+
+    # TODO:  Verify a deprecation warning was issued ?
+
+    certmaster-request --hostname testcert.pwan.co --ca sha1
+    openssl x509 -in /etc/pki/certmaster-sha1/testcert.pwan.co.cert  -text | grep Signature | grep sha1
+    assertTrue "testcert.pwan.co.cert has a sha1 hash" $?
+
+}
+
+test_Sha224CA_Autosigning() {
+
+    # TODO:  Verify /etc/pki/certmaster-test/testcert.pwan.co.cert is using sha224
+    certmaster-request --hostname testcert.pwan.co --ca sha224
+    openssl x509 -in /etc/pki/certmaster-sha224/testcert.pwan.co.cert  -text | grep Signature | grep sha224
+    assertTrue "testcert.pwan.co.cert has a sha224 hash" $?
 
 }
 

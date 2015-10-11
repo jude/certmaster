@@ -7,6 +7,7 @@
 
 import os
 import sys
+import warning
 try:
     import hashlib
 except ImportError:
@@ -16,6 +17,7 @@ except ImportError:
         @staticmethod
         def new(algo):
             if algo == 'sha1':
+                warnings.warn('sha1 is deprecated',DeprecationWarning)
                 return sha.new()
             raise ValueError, "Bad checksum type"
 
@@ -76,7 +78,7 @@ def remote_peers(hosts):
 
 def local_certs():
     """
-    Returns (hostname, sha1) hash of local certs
+    Returns (hostname, hashval) hash of local certs
     """
     globby = '*.%s' % cm.cfg.cert_extension
     globby = os.path.join(cm.cfg.certroot, globby)
@@ -85,12 +87,12 @@ def local_certs():
     for f in files:
         hostname = os.path.basename(f).replace('.' + cm.cfg.cert_extension, '')
         dirname = os.path.dirname(f)
-        digest = checksum(f)
+        digest = checksum(f,cm.cfg.hashfunc)
         results.append([hostname, digest, dirname])
     return results
 
-def checksum(f):
-    thissum = hashlib.new('sha1')
+def checksum(f,hashfunc):
+    thissum = hashlib.new(hashfunc)
     if os.path.exists(f):
         fo = open(f, 'r')
         data = fo.read()

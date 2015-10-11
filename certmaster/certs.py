@@ -89,7 +89,7 @@ def retrieve_cert_from_file(certfile):
     return cert
 
 
-def create_ca(CN="Certmaster Certificate Authority", ca_key_file=None, ca_cert_file=None):
+def create_ca(CN="Certmaster Certificate Authority", ca_key_file=None, ca_cert_file=None, hash_function='sha256'):
     cakey = make_keypair(dest=ca_key_file)
     careq = make_csr(cakey, cn=CN)
     cacert = crypto.X509()
@@ -103,7 +103,7 @@ def create_ca(CN="Certmaster Certificate Authority", ca_key_file=None, ca_cert_f
     xt = crypto.X509Extension('basicConstraints',1,'CA:TRUE')
     # FIXME - add subjectkeyidentifier and authoritykeyidentifier extensions, too)
     cacert.add_extensions((xt,))
-    cacert.sign(cakey, 'sha1')
+    cacert.sign(cakey, hash_function)
     if ca_cert_file:
         destfo = open(ca_cert_file, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cacert))
@@ -133,7 +133,7 @@ def _set_serial_number(cadir, last):
     f.close()
 
 
-def create_slave_certificate(csr, cakey, cacert, cadir, slave_cert_file=None):
+def create_slave_certificate(csr, cakey, cacert, cadir, slave_cert_file=None, hash_function='sha256'):
     cert = crypto.X509()
     cert.set_serial_number(_get_serial_number(cadir))
     cert.gmtime_adj_notBefore(0)
@@ -145,7 +145,7 @@ def create_slave_certificate(csr, cakey, cacert, cadir, slave_cert_file=None):
     xt = crypto.X509Extension('basicConstraints', False ,'CA:FALSE')
     # FIXME - add subjectkeyidentifier and authoritykeyidentifier extensions, too)
     cert.add_extensions((xt,))
-    cert.sign(cakey, 'sha1')
+    cert.sign(cakey, hash_function)
     if slave_cert_file:
         destfo = open(slave_cert_file, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))

@@ -7,5 +7,5 @@ recursive-include po *.pot
 recursive-include triggers *
 include AUTHORS
 include LICENSE
-include README
+include README.md
 

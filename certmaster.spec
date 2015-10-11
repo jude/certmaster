@@ -111,7 +111,7 @@ rm -fr $RPM_BUILD_ROOT
 %dir /var/lib/certmaster/triggers/remove/post
 /var/lib/certmaster/triggers/sign/post/certmaster-sync
 /var/lib/certmaster/triggers/remove/post/certmaster-sync
-%doc AUTHORS README LICENSE
+%doc AUTHORS README.md LICENSE
 %{_mandir}/man1/*.1.gz
 
 

@@ -21,3 +21,19 @@ cert_dir = /etc/pki/certmaster/test
 certroot = /var/lib/certmaster/test/certs
 csrroot = /var/lib/certmaster/test/csrs
 
+[ca:sha1]
+autosign = yes
+cadir = /etc/pki/certmaster/sha1-ca
+cert_dir = /etc/pki/certmaster/sha1
+certroot = /var/lib/certmaster/sha1/certs
+csrroot = /var/lib/certmaster/sha1/csrs
+hash_function = sha224
+
+[ca:sha224]
+autosign = yes
+cadir = /etc/pki/certmaster/sha224-ca
+cert_dir = /etc/pki/certmaster/sha224
+certroot = /var/lib/certmaster/sha224/certs
+csrroot = /var/lib/certmaster/sha224/csrs
+hash_function = sha224
+

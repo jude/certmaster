@@ -21,6 +21,7 @@ import sys
 import traceback
 import os
 import os.path
+import warnings
 from OpenSSL import crypto
 
 try:
@@ -32,6 +33,8 @@ except ImportError:
         @staticmethod
         def new(algo):
             if algo == 'sha1':
+                # TODO: jude: was warnings even available in 2.4 ?
+                warnings.warn("sha1 is deprecated", DeprecationWarning)
                 return sha.new()
             raise ValueError, "Bad checksum type"
 
@@ -82,7 +85,7 @@ class CertMaster(object):
                 if not os.path.exists(s_cadir):
                     os.makedirs(s_cadir)
                 if not os.path.exists(s_ca_key_file) and not os.path.exists(s_ca_cert_file):
-                    certs.create_ca(CN=mycn, ca_key_file=s_ca_key_file, ca_cert_file=s_ca_cert_file)
+                    certs.create_ca(CN=mycn, ca_key_file=s_ca_key_file, ca_cert_file=s_ca_cert_file, hash_function=a_ca.hash_function)
             except (IOError, OSError), e:
                 print 'Cannot make certmaster certificate authority keys/certs for CA %s, aborting: %s' % (s_caname, e)
                 sys.exit(1)
@@ -153,10 +156,10 @@ class CertMaster(object):
         if os.path.exists(csrfile):
             oldfo = open(csrfile)
             oldcsrbuf = oldfo.read()
-            oldsha = hashlib.new('sha1')
+            oldsha = hashlib.new(certauth.hash_function)
             oldsha.update(oldcsrbuf)
             olddig = oldsha.hexdigest()
-            newsha = hashlib.new('sha1')
+            newsha = hashlib.new(certauth.hash_function)
             newsha.update(csrbuf)
             newdig = newsha.hexdigest()
             if not newdig == olddig:
@@ -268,7 +271,7 @@ class CertMaster(object):
 
         certfile = '%s/%s.cert' % (certauth.certroot, requesting_host)
         self.logger.info("Signing for csr %s requested" % certfile)
-        thiscert = certs.create_slave_certificate(csrreq, certauth.cakey, certauth.cacert, certauth.cadir)
+        thiscert = certs.create_slave_certificate(csrreq, certauth.cakey, certauth.cacert, certauth.cadir, certauth.hash_function)
 
         destfo = open(certfile, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, thiscert))
