@@ -16,7 +16,7 @@
 
 Summary: Remote certificate distribution framework
 Name: certmaster
-Version: 0.28
+Version: 0.29
 Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.gz
 License: GPLv2+
@@ -150,6 +150,15 @@ fi
 
 
 %changelog
+
+* Fri Oct 16 2015 Jude Nagurney <jude@pwan.org> - 0.29-1
+- Added multi-ca support
+- Added support for hashing functions other than sha1
+- added shunit2 tests
+
+* Thu Apr 7 2011 Seth Vidal <skvidal@fedoraproject.org> - 0.28-1
+- 0.28
+
 * Wed Aug 25 2010 Seth Vidal <skvidal at fedoraproject.org> - 0.27-1
 - 0.27
 

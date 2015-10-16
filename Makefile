@@ -1,4 +1,4 @@
-VERSION		= 0.28
+VERSION		= 0.29
 RELEASE		= 1
 PYTHON		= /usr/bin/python
 DIST            = pwan
