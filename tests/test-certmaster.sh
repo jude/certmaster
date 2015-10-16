@@ -10,8 +10,14 @@ setUp()
     cp minion.conf.tst /etc/certmaster/minion.conf
     rm -rf /var/lib/certmaster
     rm -rf /var/lib/certmaster/test
+    rm -rf /var/lib/certmaster/md5
+    rm -rf /var/lib/certmaster/sha1
+    rm -rf /var/lib/certmaster/sha224
     rm -rf /etc/pki/certmaster
     rm -rf /etc/pki/certmaster-test
+    rm -rf /etc/pki/certmaster-md5
+    rm -rf /etc/pki/certmaster-sha1
+    rm -rf /etc/pki/certmaster-sha224
     /etc/init.d/certmaster start  >& /dev/null
 }
 
@@ -178,7 +184,7 @@ test_TestCA_Autosigning()
     subject=`openssl x509 -in /etc/pki/certmaster-test/testcert.pwan.co.cert -subject -noout`
     [[ $subject == *"CN=testcert.pwan.co"* ]]
 
-    openssl x509 -in /etc/pki/certmaster-test/testcert.pwan.co.cert  -text | grep Signature | grep sha256
+    openssl x509 -in /etc/pki/certmaster-test/testcert.pwan.co.cert  -text | grep Signature | grep sha256 > /dev/null 2>&1
     assertTrue "testcert.pwan.co.cert has a sha256 hash" $?
 
     openssl rsa -in /etc/pki/certmaster-test/testcert.pwan.co.pem -check > /dev/null 2>&1
@@ -202,18 +208,26 @@ test_TestCA_Autosigning()
 
 }
 
-test_MD5CA_Attempy() {
+test_MD5CA_Attempt() {
 
     # TODO:  Verify attempts to create MD5 certs fail
-    assertTrue "TODO" false
+    actual=$(certmaster-request --hostname badmd5req.pwan.co --ca md5 2>&1)
+    expected=$(cat <<EOF
+error: md5 hash function is unsupported: md5
+EOF
+)
+   assertEquals "MD5CA Attempt" "$actual" "$expected"
 }
 
 test_Sha1CA_Autosigning() {
 
-    # TODO:  Verify a deprecation warning was issued ?
-
-    certmaster-request --hostname testcert.pwan.co --ca sha1
-    openssl x509 -in /etc/pki/certmaster-sha1/testcert.pwan.co.cert  -text | grep Signature | grep sha1
+    actual=$(certmaster-request --hostname testcert.pwan.co --ca sha1 2>&1)
+    expected=$(cat <<EOF
+Deprecated hash function of sha1: sha1
+EOF
+)
+    assertEquals "deprecated sha1 warning" "$actual" "$expected"
+    openssl x509 -in /etc/pki/certmaster-sha1/testcert.pwan.co.cert  -text | grep Signature | grep sha1 > /dev/null 2>&1
     assertTrue "testcert.pwan.co.cert has a sha1 hash" $?
 
 }
@@ -222,7 +236,7 @@ test_Sha224CA_Autosigning() {
 
     # TODO:  Verify /etc/pki/certmaster-test/testcert.pwan.co.cert is using sha224
     certmaster-request --hostname testcert.pwan.co --ca sha224
-    openssl x509 -in /etc/pki/certmaster-sha224/testcert.pwan.co.cert  -text | grep Signature | grep sha224
+    openssl x509 -in /etc/pki/certmaster-sha224/testcert.pwan.co.cert  -text | grep Signature | grep sha224 > /dev/null 2>&1
     assertTrue "testcert.pwan.co.cert has a sha224 hash" $?
 
 }

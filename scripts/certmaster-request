@@ -18,6 +18,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 import distutils.sysconfig
 import optparse
 import sys
+import xmlrpclib
 
 from certmaster import requester
 
@@ -36,5 +37,8 @@ if __name__ == "__main__":
 
     try:
         requester.request_cert(hostname=opts.hostname, ca_name=opts.ca)
+    except xmlrpclib.Fault as f:
+        print >> sys.stderr, "error: %s" % str(f.faultString)
     except Exception as e:
         print >> sys.stderr, "error: %s" % str(e)
+        sys.exit(1)

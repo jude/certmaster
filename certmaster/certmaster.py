@@ -22,6 +22,7 @@ import traceback
 import os
 import os.path
 import warnings
+import xmlrpclib
 from OpenSSL import crypto
 
 try:
@@ -123,20 +124,33 @@ class CertMaster(object):
     def wait_for_cert(self, csrbuf, ca_name, with_triggers=True):
         """
            takes csr as a string
-           returns True, caller_cert, ca_cert
-           returns False, '', ''
+           returns True, caller_cert, ca_cert, warning
+           returns False, '', '', ''
         """
 
         try:
             certauth = self.cfg.ca[ca_name]
         except:
+            self.logger.info("Unknown cert authority: %s " % (ca_name))
             raise codes.CMException("Unknown cert authority: %s" % ca_name)
 
         try:
             csrreq = crypto.load_certificate_request(crypto.FILETYPE_PEM, csrbuf)
         except crypto.Error, e:
+            self.logger.info("crypto error: %s " % (e))
             #XXX need to raise a fault here and document it - but false is just as good
-            return False, '', ''
+            return False, '', '', ''
+
+        ret_warning = ''
+        if certauth.hash_function == "md5":
+            ca_suffix = ''
+            if ca_name != '':
+               ca_suffix = ': ' + ca_name
+            fault = "md5 hash function is unsupported%s" % ca_suffix
+            self.logger.error(fault)
+            raise xmlrpclib.Fault(1001,fault)
+        elif certauth.hash_function == "sha1":
+            ret_warning = "Deprecated hash function of sha1: %s\n" % ca_name
 
         requesting_host = self._sanitize_cn(csrreq.get_subject().CN)
 
@@ -165,7 +179,7 @@ class CertMaster(object):
             if not newdig == olddig:
                 self.logger.info("A cert for %s already exists and does not match the requesting cert" % (requesting_host))
                 # XXX raise a proper fault
-            return False, '', ''
+            return False, '', '', ret_warning
 
 
         # look for a cert:
@@ -176,7 +190,7 @@ class CertMaster(object):
             cacert_buf = crypto.dump_certificate(crypto.FILETYPE_PEM, certauth.cacert)
             if with_triggers:
                 self._run_triggers(requesting_host,'/var/lib/certmaster/triggers/request/post/*')
-            return True, cert_buf, cacert_buf
+            return True, cert_buf, cacert_buf, ret_warning
 
         # if we don't have a cert then:
         # if we're autosign then sign it, write out the cert and return True, etc, etc
@@ -190,7 +204,7 @@ class CertMaster(object):
             self.logger.info("cert for %s for ca %s was autosigned" % (requesting_host,ca_name))
             if with_triggers:
                 self._run_triggers(None,'/var/lib/certmaster/triggers/request/post/*')
-            return True, cert_buf, cacert_buf
+            return True, cert_buf, cacert_buf, ret_warning
 
         else:
             # write the csr out to a file to be dealt with by the admin
@@ -201,9 +215,9 @@ class CertMaster(object):
             self.logger.info("cert for %s for CA %s created and ready to be signed" % (requesting_host, ca_name))
             if with_triggers:
                 self._run_triggers(None,'/var/lib/certmaster/triggers/request/post/*')
-            return False, '', ''
+            return False, '', '', ret_warning
 
-        return False, '', ''
+        return False, '', '', ret_warning
 
     def get_csrs_waiting(self, certauth):
         hosts = []
@@ -271,7 +285,7 @@ class CertMaster(object):
 
         certfile = '%s/%s.cert' % (certauth.certroot, requesting_host)
         self.logger.info("Signing for csr %s requested" % certfile)
-        thiscert = certs.create_slave_certificate(csrreq, certauth.cakey, certauth.cacert, certauth.cadir, certauth.hash_function)
+        thiscert = certs.create_slave_certificate(csrreq, certauth.cakey, certauth.cacert, certauth.cadir, hash_function=certauth.hash_function)
 
         destfo = open(certfile, 'w')
         destfo.write(crypto.dump_certificate(crypto.FILETYPE_PEM, thiscert))

@@ -22,6 +22,7 @@ import urlparse
 from ConfigParser import NoSectionError, NoOptionError, ConfigParser
 from ConfigParser import ParsingError
 import exceptions
+import warnings
 
 CONFIG_FILE = "/etc/certmaster/certmaster.conf"
 
@@ -480,13 +481,8 @@ def read_config(config_file, BaseConfigDerived):
 
     ## Add the default items when just using a single ca
     opts.ca[''] = BaseConfigDerived()
-    opts.ca[''].hash_function = None
+    opts.ca[''].hash_function = "sha256"
     opts.ca[''].populate(confparser,'main')
-
-    if opts.ca[''].hash_function == 'sha1':
-        log.warning('hash_function value of sha1 is deprecated', DeprecationWarning)
-    elif opts.ca[''].hash_function == 'md5':
-        print >> sys.stderr, "Error:  hash_function of md5 is not supported" 
 
     ## Add additonal ca sections
     sections = confparser.sections()
@@ -494,14 +490,9 @@ def read_config(config_file, BaseConfigDerived):
         if a_section.startswith('ca:'):
             ca_name = a_section[3:]
             opts.ca[ca_name] = BaseConfigDerived()
-            opts.ca[ca_name].hash_function = None
+            opts.ca[ca_name].hash_function = "sha256"
             opts.ca[ca_name].populate(confparser,a_section)
             opts.ca[ca_name].cakey = None
             opts.ca[ca_name].cacert = None
-
-            if opts.ca[ca_name].hash_function == 'sha1':
-                warnings.warn('hash_function value of sha1 is deprecated in ca:%s section' % ca_name, DeprecationWarning)
-            elif opts.ca[ca_name].hash_function == 'md5':
-                print >> sys.stderr, "Error:  hash_function of md5 is not supported in ca:% section" % ca_name 
     
     return opts

@@ -168,12 +168,15 @@ def create_minion_keys(hostname=None, ca_name=''):
         raise codes.CMException, "Could not create local keypair or csr for session"
 
     result = False
+    warning = '';
+    cert_string = '';
+    ca_cert_string = '';
 
     while not result:
         try:
             # print "DEBUG: submitting CSR to certmaster: %s" % master_uri
             log.debug("submitting CSR: %s  to certmaster %s" % (csr_file, master_uri))
-            result, cert_string, ca_cert_string = submit_csr_to_master(csr_file, master_uri, ca_name)
+            result, cert_string, ca_cert_string, warning = submit_csr_to_master(csr_file, master_uri, ca_name)
         except socket.error, e:
             log.warning("Could not locate certmaster at %s" % master_uri)
 
@@ -183,6 +186,9 @@ def create_minion_keys(hostname=None, ca_name=''):
             log.warning("no response from certmaster %s, sleeping 10 seconds" % master_uri)
             time.sleep(10)
 
+    if warning != '':
+        log.warning(warning)
+        sys.stderr.write(warning)
 
     if result:
         # print "DEBUG: recieved certificate from certmaster"
@@ -191,8 +197,12 @@ def create_minion_keys(hostname=None, ca_name=''):
             keypair = certs.retrieve_key_from_file(key_file)
         valid = certs.check_cert_key_match(cert_string, keypair)
         if not valid:
-            log.info("certificate does not match key (run certmaster-ca --clean first?)")
-            sys.stderr.write("certificate does not match key (run certmaster-ca --clean first?)\n")
+            if ca_name != "":
+               ca_suffix = "--ca " + ca_name
+            else:
+               ca_suffix = ""
+            log.info("certificate does not match key (run certmaster-ca --clean %s first on the certmaster ?)" % ca_suffix )
+            sys.stderr.write("certificate does not match key (run certmaster-ca --clean %s first on the certmaster ?)\n" % ca_suffix)
             return
         cert_fd = os.open(cert_file, os.O_RDWR|os.O_CREAT, 0644)
         os.write(cert_fd, cert_string)
@@ -237,7 +247,7 @@ def submit_csr_to_master(csr_file, master_uri, ca_name=''):
     """"
     gets us our cert back from the certmaster.wait_for_cert() method
     takes csr_file as path location and master_uri
-    returns Bool, str(cert), str(ca_cert)
+    returns Bool, str(cert), str(ca_cert), str(warning)
     """
 
     fo = open(csr_file)
